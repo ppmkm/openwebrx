@@ -109,7 +109,7 @@ class Dsp(DirewolfConfigSubscriber):
 #        chain = ["nc -v 127.0.0.1 {nc_port}"]
         chain =[]
         if which == "fft":
-            chain += [ "csdr fft_cc {fft_size} {fft_block_size} --benchmark" ]
+            chain += [ "csdr fft_cc {fft_size} {fft_block_size} --benchmark  -ih127.0.0.1 -ip{nc_port}" ]
              
             if self.fft_averages == 0:
                 chain += ["csdr logpower_cf -70" ]

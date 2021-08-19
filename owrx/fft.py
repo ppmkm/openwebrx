@@ -39,8 +39,8 @@ class SpectrumThread(Output, SdrSourceEventClient):
 
             dsp.set_fft_averages(
                 int(round(1.0 * samp_rate / fft_size / fft_fps / (1.0 - fft_voverlap_factor)))
-                if fft_voverlap_factor > 0
-                else 0
+                if fft_voverlap_factor > 0 
+                else 50
             )
 
         self.subscriptions = [

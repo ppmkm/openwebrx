@@ -106,21 +106,26 @@ class Dsp(DirewolfConfigSubscriber):
         self.pipe_base_path = "{tmp_dir}/openwebrx_pipe_".format(tmp_dir=self.temporary_directory)
 
     def chain(self, which):
-        chain = ["nc -v 127.0.0.1 {nc_port}"]
+#        chain = ["nc -v 127.0.0.1 {nc_port}"]
+        chain =[]
         if which == "fft":
-            chain += [
-                "csdr fft_cc {fft_size} {fft_block_size}",
-                "csdr logpower_cf -70"
-                if self.fft_averages == 0
-                else "csdr logaveragepower_cf -70 {fft_size} {fft_averages}",
-                "csdr fft_exchange_sides_ff {fft_size}",
-            ]
+            chain += [ "csdr fft_cc {fft_size} {fft_block_size} --benchmark" ]
+             
+            if self.fft_averages == 0:
+                chain += ["csdr logpower_cf -70" ]
+            else: 
+                chain += ["csdr logaveragepower_cf -70 {fft_size} {fft_averages}"]
+                
+            chain += ["csdr fft_exchange_sides_ff {fft_size}"]
+            
             if self.fft_compression == "adpcm":
                 chain += ["csdr compress_fft_adpcm_f_u8 {fft_size}"]
             return chain
-        chain += ["csdr shift_addfast_cc --fifo {shift_pipe}"]
+        chain += ["csdr shift_addfast_cc --fifo {shift_pipe} -ih127.0.0.1 -ip{nc_port}"]
         if self.decimation > 1:
-            chain += ["csdr fir_decimate_cc {decimation} {ddc_transition_bw} HAMMING"]
+#            chain += ["csdr fir_decimate_cc {decimation} {ddc_transition_bw} HAMMING"]
+#PPM fixes transition with to save power below
+            chain += ["csdr fir_decimate_cc {decimation} 0.05 HAMMING"]
         chain += ["csdr bandpass_fir_fft_cc --fifo {bpf_pipe} {bpf_transition_bw} HAMMING"]
         if self.output.supports_type("smeter"):
             chain += [
@@ -139,7 +144,8 @@ class Dsp(DirewolfConfigSubscriber):
             # activate prefilter if signal has been oversampled, e.g. WFM
             last_decimation_block = ["csdr fractional_decimator_ff {last_decimation} 12 --prefilter"]
         elif self.last_decimation != 1.0:
-            last_decimation_block = ["csdr fractional_decimator_ff {last_decimation}"]
+            #PPM no last fractional decimator            last_decimation_block = ["csdr fractional_decimator_ff {last_decimation}"]
+            logger.debug("fractional decimator disabled");
         if which == "nfm":
             chain += ["csdr fmdemod_quadri_cf", "csdr limit_ff"]
             chain += last_decimation_block
@@ -247,7 +253,7 @@ class Dsp(DirewolfConfigSubscriber):
         chain = ["cat {input_pipe}"]
         if which == "fft":
             chain += [
-                "csdr fft_cc {secondary_fft_input_size} {secondary_fft_block_size}",
+                "csdr fft_cc {secondary_fft_input_size} {secondary_fft_block_size} --benchmark",
                 "csdr logpower_cf -70"
                 if self.fft_averages == 0
                 else "csdr logaveragepower_cf -70 {secondary_fft_size} {fft_averages}",
@@ -273,7 +279,8 @@ class Dsp(DirewolfConfigSubscriber):
         elif which == "packet":
             chain += ["csdr fmdemod_quadri_cf"]
             if self.last_decimation != 1.0:
-                chain += ["csdr fractional_decimator_ff {last_decimation}"]
+                logger.debug("direwolf fractional decimator disabled");
+                #chain += ["csdr fractional_decimator_ff {last_decimation}"]
             return chain + ["csdr convert_f_s16", "direwolf -c {direwolf_config} -r {audio_rate} -t 0 -q d -q h 1>&2"]
         elif which == "pocsag":
             chain += ["csdr fmdemod_quadri_cf"]

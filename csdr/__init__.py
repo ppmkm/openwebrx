@@ -64,7 +64,7 @@ class Dsp(DirewolfConfigSubscriber):
         self.last_decimation = None
         self.nc_port = None
         self.squelch_level = -150
-        self.fft_averages = 50
+        self.fft_averages = 9
         self.wfm_deemphasis_tau = 50e-6
         self.iqtee = False
         self.iqtee2 = False
